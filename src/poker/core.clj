@@ -32,3 +32,7 @@
                 (update-in [:deck] pop)))
           game
           (range (count (:hands game)))))
+
+(defn beats?
+  [& _hands]
+  false)
