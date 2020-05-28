@@ -7,6 +7,13 @@
        (map-indexed (fn [i r] [r i]))
        (into {})))
 
+(defn- extract-high-card
+  [hand]
+  {:classification :high-card
+   :remaining-ranks (->> hand
+                         (map first)
+                         (sort-by rank-values >))})
+
 (defn- of-a-kind
   [hand {:keys [count-of-kind
                 count-of-sets]}]
@@ -57,15 +64,28 @@
                              (map first)
                              (sort-by rank-values >))})))
 
-(defn- extract-high-card
+(defn- extract-straight
   [hand]
-  {:classification :high-card
-   :remaining-ranks (->> hand
-                         (map first)
-                         (sort-by rank-values >))})
+  (let [match (->> hand
+                   (map #(hash-map :card %
+                                   :rank-value (-> % first rank-values)))
+                   (sort-by :rank-value >)
+                   (partition-all 2 1)
+                   (map (fn [[n p]]
+                          (assoc n :step (if p
+                                           (- (:rank-value n)
+                                              (:rank-value p))
+                                           1))))
+                   (take-while #(= 1 (:step %)))
+                   (take 5))]
+    (when (= 5 (count match))
+      {:classification :straight
+       :top-rank (-> match first :card first)
+       :cards (map :card match)})))
 
 (def hand-fns
-  [extract-three-of-a-kind
+  [extract-straight
+   extract-three-of-a-kind
    extract-two-pair
    extract-pair
    extract-high-card])

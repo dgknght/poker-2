@@ -61,6 +61,23 @@
       (pprint (diff expected actual)))
     (is (= expected actual))))
 
+(deftest identify-a-straight
+  (let [expected {:classification :straight
+                  :top-rank :9
+                  :cards [[:9 :spades]
+                          [:8 :spades]
+                          [:7 :hearts]
+                          [:6 :diamonds]
+                          [:5 :clubs]]}
+        actual (poker/score [[:5 :clubs]
+                             [:6 :diamonds]
+                             [:8 :spades]
+                             [:9 :spades]
+                             [:7 :hearts]])]
+    (when-not (= expected actual)
+      (pprint (diff expected actual)))
+    (is (= expected actual))))
+
 ;(def queen-high
 ;  [[:8  :hearts]
 ;   [:Q  :hearts]
