@@ -8,17 +8,19 @@
        (into {})))
 
 (defn- of-a-kind
-  [hand {:keys [count-of-kind]}]
+  [hand {:keys [count-of-kind
+                count-of-sets]}]
   (->> hand
        (group-by first)
        (filter #(= count-of-kind (count (second %))))
        (sort-by (comp rank-values first) >)
        (map #(update-in % [1] set))
-       first))
+       (take count-of-sets)))
 
 (defn- extract-pair
   [hand]
-  (let [[rank cards] (of-a-kind hand {:count-of-kind 2})]
+  (let [[[rank cards]] (of-a-kind hand {:count-of-kind 2
+                                      :count-of-sets 1})]
     (when rank
       {:classification :pair
        :rank rank
@@ -30,12 +32,8 @@
 
 (defn- extract-two-pair
   [hand]
-  (let [match (->> hand
-                          (group-by first)
-                          (filter #(= 2 (count (second %))))
-                          (sort-by (comp rank-values first) >)
-                          (map #(update-in % [1] set))
-                          (take 2))]
+  (let [match (of-a-kind hand {:count-of-kind 2
+                               :count-of-sets 2})]
     (when (= 2 (count match))
       {:classification :two-pair
        :ranks (map first match)
@@ -48,7 +46,8 @@
 
 (defn- extract-three-of-a-kind
   [hand]
-  (let [[rank cards] (of-a-kind hand {:count-of-kind 3})]
+  (let [[[rank cards]] (of-a-kind hand {:count-of-kind 3
+                                      :count-of-sets 1})]
     (when rank
       {:classification :three-of-a-kind
        :rank rank
