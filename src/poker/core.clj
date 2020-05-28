@@ -1,5 +1,5 @@
 (ns poker.core
-  (:require [clojure.pprint :refer [pprint]])
+  #_(:require [clojure.pprint :refer [pprint]])
   (:gen-class))
 
 (def rank-values
@@ -7,14 +7,18 @@
        (map-indexed (fn [i r] [r i]))
        (into {})))
 
+(defn- of-a-kind
+  [hand {:keys [count-of-kind]}]
+  (->> hand
+       (group-by first)
+       (filter #(= count-of-kind (count (second %))))
+       (sort-by (comp rank-values first) >)
+       (map #(update-in % [1] set))
+       first))
+
 (defn- extract-pair
   [hand]
-  (let [[rank cards] (->> hand
-                          (group-by first)
-                          (filter #(<= 2 (count (second %))))
-                          (sort-by (comp rank-values first) >)
-                          (map #(update-in % [1] set))
-                          first)]
+  (let [[rank cards] (of-a-kind hand {:count-of-kind 2})]
     (when rank
       {:classification :pair
        :rank rank
@@ -28,7 +32,7 @@
   [hand]
   (let [match (->> hand
                           (group-by first)
-                          (filter #(<= 2 (count (second %))))
+                          (filter #(= 2 (count (second %))))
                           (sort-by (comp rank-values first) >)
                           (map #(update-in % [1] set))
                           (take 2))]
@@ -42,6 +46,18 @@
                              (map first)
                              (sort-by rank-values >))})))
 
+(defn- extract-three-of-a-kind
+  [hand]
+  (let [[rank cards] (of-a-kind hand {:count-of-kind 3})]
+    (when rank
+      {:classification :three-of-a-kind
+       :rank rank
+       :cards cards
+       :remaining-ranks (->> hand
+                             (remove cards)
+                             (map first)
+                             (sort-by rank-values >))})))
+
 (defn- extract-high-card
   [hand]
   {:classification :high-card
@@ -50,7 +66,8 @@
                          (sort-by rank-values >))})
 
 (def hand-fns
-  [extract-two-pair
+  [extract-three-of-a-kind
+   extract-two-pair
    extract-pair
    extract-high-card])
 
