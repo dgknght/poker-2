@@ -19,20 +19,39 @@
       {:classification :pair
        :rank rank
        :cards cards
-       :ranks (->> hand
-                   (remove cards)
-                   (map first)
-                   (sort-by rank-values >))})))
+       :remaining-ranks (->> hand
+                             (remove cards)
+                             (map first)
+                             (sort-by rank-values >))})))
+
+(defn- extract-two-pair
+  [hand]
+  (let [match (->> hand
+                          (group-by first)
+                          (filter #(<= 2 (count (second %))))
+                          (sort-by (comp rank-values first) >)
+                          (map #(update-in % [1] set))
+                          (take 2))]
+    (when (= 2 (count match))
+      {:classification :two-pair
+       :ranks (map first match)
+       :cards (map second match)
+       :remaining-ranks (->> hand
+                             (remove (-> match first second))
+                             (remove (-> match second second))
+                             (map first)
+                             (sort-by rank-values >))})))
 
 (defn- extract-high-card
   [hand]
   {:classification :high-card
-   :ranks (->> hand
-               (map first)
-               (sort-by rank-values >))})
+   :remaining-ranks (->> hand
+                         (map first)
+                         (sort-by rank-values >))})
 
 (def hand-fns
-  [extract-pair
+  [extract-two-pair
+   extract-pair
    extract-high-card])
 
 (defn score

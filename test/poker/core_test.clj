@@ -6,7 +6,7 @@
 
 (deftest identify-a-high-card
   (is (= {:classification :high-card
-          :ranks [:K :9 :4 :3 :2]}
+          :remaining-ranks [:K :9 :4 :3 :2]}
          (poker/score [[:K :clubs]
                        [:4 :diamonds]
                        [:2 :spades]
@@ -18,9 +18,26 @@
                  :rank :2
                  :cards #{[:2 :hearts]
                           [:2 :spades]}
-                 :ranks [:K :9 :4]}
+                 :remaining-ranks [:K :9 :4]}
         actual (poker/score [[:K :clubs]
                              [:4 :diamonds]
+                             [:2 :spades]
+                             [:9 :spades]
+                             [:2 :hearts]])]
+    (when-not (= expected actual)
+      (pprint (diff expected actual)))
+    (is (= expected actual))))
+
+(deftest identify-two-pair
+  (let [expected {:classification :two-pair
+                  :ranks [:K :2]
+                  :cards [#{[:K :clubs]
+                            [:K :diamonds]}
+                          #{[:2 :spades]
+                            [:2 :hearts]}]
+                  :remaining-ranks [:9]}
+        actual (poker/score [[:K :clubs]
+                             [:K :diamonds]
                              [:2 :spades]
                              [:9 :spades]
                              [:2 :hearts]])]
