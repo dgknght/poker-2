@@ -1,5 +1,5 @@
 (ns poker.deck
-  (:require [clojure.pprint :refer [pprint]])
+  #_(:require [clojure.pprint :refer [pprint]])
   (:gen-class))
 
 (def suits
