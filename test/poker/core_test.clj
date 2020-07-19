@@ -97,6 +97,23 @@
       (pprint (diff expected actual)))
     (is (= expected actual))))
 
+(deftest identify-four-of-a-kind
+  (let [expected {:classification :four-of-a-kind
+                  :rank :3
+                  :remaining-ranks [:K]
+                  :cards #{[:3 :diamonds]
+                           [:3 :hearts]
+                           [:3 :spades]
+                           [:3 :clubs]}}
+        actual (poker/score [[:3 :diamonds]
+                             [:3 :hearts]
+                             [:K :hearts]
+                             [:3 :spades]
+                             [:3 :clubs]])]
+    (when-not (= expected actual)
+      (pprint (diff expected actual)))
+    (is (= expected actual))))
+
 ;(def queen-high
 ;  [[:8  :hearts]
 ;   [:Q  :hearts]

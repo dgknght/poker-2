@@ -9,6 +9,8 @@
 
 (def ^:private rank first)
 
+(def ^:private suit second)
+
 (defmulti rank-value
   (fn [card-or-rank-key]
     (if (vector? card-or-rank-key)
@@ -103,11 +105,11 @@
 (defn- extract-flush
   [hand]
   (let [match (->> hand
-                   (group-by second)
+                   (group-by suit)
                    vals
                    (filter #(<= 5 (count %)))
                    (map #(sort-by rank-value > %))
-                   (sort-by (comp rank-value
+                   (sort-by (comp rank-value ; sort the groups of cards
                                   first))
                    (map #(take 5 %))
                    first)]
@@ -116,8 +118,22 @@
        :top-rank (ffirst match)
        :cards match})))
 
+(defn- extract-four-of-a-kind
+  [hand]
+  (let [[[rank cards]] (of-a-kind hand {:count-of-kind 4
+                                        :count-of-sets 1})]
+    (when rank
+      {:classification :four-of-a-kind
+       :rank rank
+       :cards cards
+       :remaining-ranks (->> hand
+                             (remove cards)
+                             (map first)
+                             (sort-by rank-value >))})))
+
 (def hand-fns
-  [extract-flush
+  [extract-four-of-a-kind
+   extract-flush
    extract-straight
    extract-three-of-a-kind
    extract-two-pair
