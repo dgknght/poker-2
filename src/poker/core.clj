@@ -7,27 +7,44 @@
        (map-indexed (fn [i r] [r i]))
        (into {})))
 
+(def ^:private rank first)
+
+(defmulti rank-value
+  (fn [card-or-rank-key]
+    (if (vector? card-or-rank-key)
+      :vector
+      :scalar)))
+
+(defmethod rank-value :scalar
+  [rank-key]
+  {:pre [(contains? rank-values rank-key)]}
+  (rank-values rank-key))
+
+(defmethod rank-value :vector
+  [card]
+  ((comp rank-value rank) card))
+
 (defn- extract-high-card
   [hand]
   {:classification :high-card
    :remaining-ranks (->> hand
-                         (map first)
+                         (map rank)
                          (sort-by rank-values >))})
 
 (defn- of-a-kind
-  [hand {:keys [count-of-kind
+  [cards {:keys [count-of-kind
                 count-of-sets]}]
-  (->> hand
-       (group-by first)
+  (->> cards
+       (group-by rank)
        (filter #(= count-of-kind (count (second %))))
-       (sort-by (comp rank-values first) >)
+       (sort-by (comp rank-values rank) >)
        (map #(update-in % [1] set))
        (take count-of-sets)))
 
 (defn- extract-pair
   [hand]
   (let [[[rank cards]] (of-a-kind hand {:count-of-kind 2
-                                      :count-of-sets 1})]
+                                        :count-of-sets 1})]
     (when rank
       {:classification :pair
        :rank rank
@@ -43,7 +60,7 @@
                                :count-of-sets 2})]
     (when (= 2 (count match))
       {:classification :two-pair
-       :ranks (map first match)
+       :ranks (map rank match)
        :cards (map second match)
        :remaining-ranks (->> hand
                              (remove (-> match first second))
@@ -54,7 +71,7 @@
 (defn- extract-three-of-a-kind
   [hand]
   (let [[[rank cards]] (of-a-kind hand {:count-of-kind 3
-                                      :count-of-sets 1})]
+                                        :count-of-sets 1})]
     (when rank
       {:classification :three-of-a-kind
        :rank rank
@@ -62,13 +79,13 @@
        :remaining-ranks (->> hand
                              (remove cards)
                              (map first)
-                             (sort-by rank-values >))})))
+                             (sort-by rank-value >))})))
 
 (defn- extract-straight
   [hand]
   (let [match (->> hand
                    (map #(hash-map :card %
-                                   :rank-value (-> % first rank-values)))
+                                   :rank-value (rank-value %)))
                    (sort-by :rank-value >)
                    (partition-all 2 1)
                    (map (fn [[n p]]
@@ -80,11 +97,28 @@
                    (take 5))]
     (when (= 5 (count match))
       {:classification :straight
-       :top-rank (-> match first :card first)
+       :top-rank (-> match first :card rank)
        :cards (map :card match)})))
 
+(defn- extract-flush
+  [hand]
+  (let [match (->> hand
+                   (group-by second)
+                   vals
+                   (filter #(<= 5 (count %)))
+                   (map #(sort-by rank-value > %))
+                   (sort-by (comp rank-value
+                                  first))
+                   (map #(take 5 %))
+                   first)]
+    (when match
+      {:classification :flush
+       :top-rank (ffirst match)
+       :cards match})))
+
 (def hand-fns
-  [extract-straight
+  [extract-flush
+   extract-straight
    extract-three-of-a-kind
    extract-two-pair
    extract-pair
