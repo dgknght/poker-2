@@ -83,36 +83,47 @@
                              (map first)
                              (sort-by rank-value >))})))
 
+(defn- match-straight
+  [cards]
+  (let [card-seq (->> cards
+                      (map #(hash-map :card %
+                                      :rank-value (rank-value %)))
+                      (sort-by :rank-value >)
+                      (partition-all 2 1)
+                      (map (fn [[n p]]
+                             (assoc n :step (if p
+                                              (- (:rank-value n)
+                                                 (:rank-value p))
+                                              1))))
+                      (take-while #(= 1 (:step %)))
+                      (map :card)
+                      (take 5))]
+    (when (= 5 (count card-seq))
+      card-seq)))
+
 (defn- extract-straight
-  [hand]
-  (let [match (->> hand
-                   (map #(hash-map :card %
-                                   :rank-value (rank-value %)))
-                   (sort-by :rank-value >)
-                   (partition-all 2 1)
-                   (map (fn [[n p]]
-                          (assoc n :step (if p
-                                           (- (:rank-value n)
-                                              (:rank-value p))
-                                           1))))
-                   (take-while #(= 1 (:step %)))
-                   (take 5))]
-    (when (= 5 (count match))
+  [cards]
+  (let [match (match-straight cards)]
+    (when match
       {:classification :straight
-       :top-rank (-> match first :card rank)
-       :cards (map :card match)})))
+       :top-rank (-> match first rank)
+       :cards match})))
+
+(defn- match-flush
+  [cards]
+  (->> cards
+       (group-by suit)
+       vals
+       (filter #(<= 5 (count %)))
+       (map #(sort-by rank-value > %))
+       (sort-by (comp rank-value ; sort the groups of cards
+                      first))
+       (map #(take 5 %))
+       first))
 
 (defn- extract-flush
-  [hand]
-  (let [match (->> hand
-                   (group-by suit)
-                   vals
-                   (filter #(<= 5 (count %)))
-                   (map #(sort-by rank-value > %))
-                   (sort-by (comp rank-value ; sort the groups of cards
-                                  first))
-                   (map #(take 5 %))
-                   first)]
+  [cards]
+  (let [match (match-flush cards)]
     (when match
       {:classification :flush
        :top-rank (ffirst match)
@@ -131,8 +142,20 @@
                              (map first)
                              (sort-by rank-value >))})))
 
+(defn- extract-straight-flush
+  [cards]
+  (let [[top :as match] (-> cards
+                            match-flush
+                            match-straight)]
+    (when match
+      {:classification :straight-flush
+       :cards match
+       :suit (suit top)
+       :top-rank (rank top)})))
+
 (def hand-fns
-  [extract-four-of-a-kind
+  [extract-straight-flush
+   extract-four-of-a-kind
    extract-flush
    extract-straight
    extract-three-of-a-kind
