@@ -134,6 +134,19 @@
       (pprint (diff expected actual)))
     (is (= expected actual))))
 
+(deftest identify-a-royal-flush
+  (let [expected {:classification :royal-flush}
+        actual (poker/score [[:10 :hearts]
+                             [:J :hearts]
+                             [:8 :diamonds]
+                             [:Q :hearts]
+                             [:K :hearts]
+                             [:A :spades]
+                             [:A :hearts]])]
+    (when-not (= expected actual)
+      (pprint (diff expected actual)))
+    (is (= expected actual))))
+
 ;(def queen-high
 ;  [[:8  :hearts]
 ;   [:Q  :hearts]

@@ -153,8 +153,18 @@
        :suit (suit top)
        :top-rank (rank top)})))
 
+(defn- extract-royal-flush
+  [cards]
+  (let [top (-> cards
+                match-flush
+                match-straight
+                first)]
+    (when (= :A (rank top))
+      {:classification :royal-flush})))
+
 (def hand-fns
-  [extract-straight-flush
+  [extract-royal-flush
+   extract-straight-flush
    extract-four-of-a-kind
    extract-flush
    extract-straight
